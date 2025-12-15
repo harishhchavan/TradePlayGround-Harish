@@ -25,6 +25,32 @@ dependencies {
     // This dependency is used by the application.
     implementation libs.guava
 
+    //reading application.conf(ConfigFactory)
+    implementation "com.typesafe:config:1.4.3"
+
+    // MS SQL Server JDBC driver
+    implementation 'com.microsoft.sqlserver:mssql-jdbc:12.6.1.jre11'
+
+    // AMPS Java/Scala client
+    implementation files('amps-java-client-5.3.5.0.tar.gz')
+    implementation("com.typesafe.play:play-json_2.13:2.10.0-RC7")
+
+
+    implementation "com.crankuptheamps:amps-client:5.3.5.0"
+//
+//    // JSON parsing library (Jackson)
+//    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.2'
+//    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.2'
+//    implementation 'com.fasterxml.jackson.module:jackson-module-scala_2.13:2.16.2'
+
+
+
+
+    //slf4j + logback
+    implementation "org.slf4j:slf4j-api:2.0.13"
+    implementation "ch.qos.logback:logback-classic:1.5.6"
+
+
     // Use Scalatest for testing our library
     testImplementation libs.junit
     testImplementation libs.scalatest.v2.v13
@@ -43,5 +69,5 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = 'org.example.App'
+    mainClass = 'com.trade.settlement.SettlementApp'
 }
