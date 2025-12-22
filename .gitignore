@@ -3,3 +3,7 @@
 
 # Ignore Gradle build output directory
 build
+
+app/src/main/scala/org/example/
+app/src/main/scala/com/trade/app/
+*.hprof
