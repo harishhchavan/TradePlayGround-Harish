@@ -6,26 +6,26 @@ import com.crankuptheamps.client.MessageStream;
 import com.trade.amps.AmpsClientUtil;
 
 public class ValidationService {
-    public static void main(String []args) throws Exception{
+    public static void main(String[] args) throws Exception {
         HAClient client = AmpsClientUtil.connect("ValidationService");
         System.out.println("Validation Service connected, waiting for trades...");
 
         MessageStream ms = client.subscribe("trades.enriched").timeout(0);
-        for(Message msg :ms){
-            String trade = msg.getData();
 
-            //Simple validation
+        int count = 0; // debug limit
+        for (Message msg : ms) {
+            String trade = msg.getData();
             boolean valid = trade.contains("qty");
-            if(valid){
+            if (valid) {
                 client.publish("trades.validated", trade);
-                System.out.println("Validated trade: "+trade);
+                System.out.println("Validated trade: " + trade);
             } else {
-                System.out.println("Invalid trade: "+trade);
+                System.out.println("Invalid trade: " + trade);
             }
+
+            if (++count >= 5) break; // remove in production
         }
 
-        client.wait(20000);
         client.close();
     }
 }
-

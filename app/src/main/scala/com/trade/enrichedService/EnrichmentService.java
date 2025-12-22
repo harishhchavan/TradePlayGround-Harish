@@ -6,21 +6,22 @@ import com.crankuptheamps.client.MessageStream;
 import com.trade.amps.AmpsClientUtil;
 
 public class EnrichmentService {
-
     public static void main(String[] args) throws Exception {
-
         HAClient client = AmpsClientUtil.connect("EnrichmentService");
-        System.out.println("Enrichment Servicec connected, waiting for trade...");
+        System.out.println("Enrichment Service connected, waiting for trades...");
 
         MessageStream ms = client.subscribe("trades.raw").timeout(0);
-        for(Message msg: ms){
+
+        int count = 0; // debug limit, remove/comment in production
+        for (Message msg : ms) {
             String trade = msg.getData();
-            String enrichedTrade =trade.replace("}", ", \"enriched\":true}");
+            String enrichedTrade = trade.replace("}", ", \"enriched\":true}");
             client.publish("trades.enriched", enrichedTrade);
-            System.out.println("Enriched and Published trade: "+enrichedTrade);
-            client.wait(20000);
-            client.close();
+            System.out.println("Enriched and Published trade: " + enrichedTrade);
+
+            if (++count >= 5) break; // remove in production
         }
+
+        client.close();
     }
 }
-

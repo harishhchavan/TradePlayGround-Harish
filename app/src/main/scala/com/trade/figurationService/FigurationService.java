@@ -6,21 +6,22 @@ import com.crankuptheamps.client.MessageStream;
 import com.trade.amps.AmpsClientUtil;
 
 public class FigurationService {
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
         HAClient client = AmpsClientUtil.connect("FigurationService");
         System.out.println("Figuration Service connected, waiting for trades...");
 
         MessageStream ms = client.subscribe("trades.validated").timeout(0);
-        for (Message msg: ms){
-            String trade = msg.getData();
 
-            //Add price of calculation
+        int count = 0; // debug limit
+        for (Message msg : ms) {
+            String trade = msg.getData();
             String pricedTrade = trade.replace("}", ",\"price\":150}");
-            client.publish("trades.validated", pricedTrade);
-            System.out.println("Figured trade: "+pricedTrade);
+            client.publish("trades.figured", pricedTrade); // new topic to avoid loops
+            System.out.println("Figured trade: " + pricedTrade);
+
+            if (++count >= 5) break; // remove in production
         }
 
-        client.wait(20000);
         client.close();
     }
 }
