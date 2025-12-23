@@ -1,23 +1,126 @@
 package com.trade.settlementService
 
-import com.crankuptheamps.client.{HAClient, Message}
-import com.trade.amps.AmpsClientUtil
+import com.crankuptheamps.client.{Client, Command, Message, MessageHandler}
+import com.trade.SQL.SQL
 import com.trade.common.Trade
-import play.api.libs.json.Json
+import com.trade.config.DbConfig
+import play.api.libs.json._
+import java.sql.{Connection, DriverManager}
 
-object SettlementService extends App {
+import java.time.Instant
 
-  val client: HAClient = AmpsClientUtil.connect("SettlementService")
-  println("Settlement Service connected")
 
-  val ms = client.subscribe("trades.figured").timeout(0)
+object SettlementService {
 
-  while (true) {
-    val msg = ms.next()
-    val trade = Json.parse(msg.getData).as[Trade]
+  def main(args: Array[String]): Unit = {
 
-    println(s"Final trade received: $trade")
+    val config = DbConfig.dbConfig
+    Class.forName(config.dbDriver)
 
-    // Next step: save trade to DB
+    val figurationAmpsServer = "tcp://192.168.20.169:9007/amps/json"
+
+    println("=" * 60)
+    println("HARISH - SETTLEMENT SERVICE")
+    println("=" * 60)
+
+    val client = new Client("SettlementService")
+
+    try {
+      client.connect(figurationAmpsServer)
+      client.logon()
+      println("Connected to Figuration Server!")
+
+
+      val handler = new MessageHandler() {
+        override def invoke(msg: Message): Unit = {
+
+          val rawJson = msg.getData
+
+//          println("\nRAW MESSAGE:")
+//          println(rawJson)
+
+          // 🔹 Convert JSON string → Trade
+          Json.parse(rawJson).validate[Trade] match {
+
+            case JsSuccess(trade, _) =>
+              val settled = settleTrade(trade)
+              val conn: Connection = DriverManager.getConnection(config.dbUrl, config.dbUser, config.dbPassword)
+
+              try {
+                conn.setAutoCommit(false)
+                updateSettlementInDB(conn, settled)
+                conn.commit()
+                println(s"Trade ${settled.trade_id} settled successfully")
+
+              } catch {
+                case e: Exception =>
+                  conn.rollback()
+                  println(s"Failed to settle trade ${settled.trade_id}")
+                  e.printStackTrace()
+
+              } finally {
+                conn.close()
+              }
+
+
+            case JsError(errors) =>
+              println("Invalid JSON received!!!")
+              println(errors)
+          }
+        }
+      }
+
+      val cmd = new Command("subscribe").setTopic("figurated")
+      client.executeAsync(cmd, handler)
+
+      Thread.sleep(300000)
+
+    } finally {
+      client.close()
+      println("Disconnected")
+    }
+  }
+
+//-----------------------------------------------------------
+
+  private def settleTrade(t: Trade): Trade = {
+
+    val commission = t.quantity * t.price * 0.001   // 0.1%
+    val tax        = t.quantity * t.price * 0.002   // 0.2%
+    val gross      = t.quantity * t.price
+    val net        = gross - commission - tax
+
+    t.copy(
+      price = t.price,                     // final price (or override)
+      broker_id = "BRK-101",
+      commission = commission,
+      tax = tax,
+      gross_amount = gross,
+      net_amount = net,
+      received_time = Instant.now().toString,
+      status = "SETTLED"
+    )
+  }
+
+  //update settled trades-----------------------------------------------
+
+  private def updateSettlementInDB(conn: java.sql.Connection, t: Trade): Unit = {
+
+    val settledTradeInDb = SQL.SETTLE_QUERY
+
+    val ps = conn.prepareStatement(settledTradeInDb)
+
+    ps.setBigDecimal(1, t.price.bigDecimal)
+    ps.setString(2, t.broker_id)
+    ps.setBigDecimal(3, t.commission.bigDecimal)
+    ps.setBigDecimal(4, t.tax.bigDecimal)
+    ps.setBigDecimal(5, t.gross_amount.bigDecimal)
+    ps.setBigDecimal(6, t.net_amount.bigDecimal)
+    ps.setString(7, t.received_time)
+    ps.setString(8, t.status)
+    ps.setInt(9, t.trade_id)
+
+    ps.executeUpdate()
+    ps.close()
   }
 }
