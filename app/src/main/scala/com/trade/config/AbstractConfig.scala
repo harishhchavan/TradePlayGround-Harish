@@ -2,7 +2,7 @@ package com.trade.config
 
 import com.typesafe.config.{Config, ConfigFactory}
 
-abstract class AbstractConfig {
+trait AbstractConfig {
 
   protected val config: Config = ConfigFactory.load()
 }
