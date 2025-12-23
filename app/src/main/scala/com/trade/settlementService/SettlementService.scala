@@ -6,7 +6,6 @@ import com.trade.common.Trade
 import com.trade.config.DbConfig
 import play.api.libs.json._
 import java.sql.{Connection, DriverManager}
-
 import java.time.Instant
 
 
@@ -35,22 +34,32 @@ object SettlementService {
         override def invoke(msg: Message): Unit = {
 
           val rawJson = msg.getData
+          //Can be unwanted data!
 
-//          println("\nRAW MESSAGE:")
-//          println(rawJson)
+          val cleanJson = {
+            if(rawJson.contains("}"))
+              rawJson.substring(0, rawJson.indexOf("}") + 1)
+            else
+              rawJson
+          }
+
+          println("\nRAW MESSAGE:")
+          println(cleanJson)
 
           // 🔹 Convert JSON string → Trade
-          Json.parse(rawJson).validate[Trade] match {
+          Json.parse(cleanJson).validate[Trade] match {
 
             case JsSuccess(trade, _) =>
               val settled = settleTrade(trade)
+                println("Trade details filled successfully.")
+
               val conn: Connection = DriverManager.getConnection(config.dbUrl, config.dbUser, config.dbPassword)
 
               try {
                 conn.setAutoCommit(false)
                 updateSettlementInDB(conn, settled)
-                conn.commit()
                 println(s"Trade ${settled.trade_id} settled successfully")
+                conn.commit()
 
               } catch {
                 case e: Exception =>
@@ -81,12 +90,13 @@ object SettlementService {
     }
   }
 
-//-----------------------------------------------------------
+//calculating trade information-----------------------------------------------------------
 
+  //this is because previous one didn't do their work properly...
   private def settleTrade(t: Trade): Trade = {
 
-    val commission = t.quantity * t.price * 0.001   // 0.1%
-    val tax        = t.quantity * t.price * 0.002   // 0.2%
+    val commission = t.quantity * t.price * 0.003   // 0.3%
+    val tax        = t.quantity * t.price * 0.005   // 0.5%
     val gross      = t.quantity * t.price
     val net        = gross - commission - tax
 
@@ -100,6 +110,7 @@ object SettlementService {
       received_time = Instant.now().toString,
       status = "SETTLED"
     )
+
   }
 
   //update settled trades-----------------------------------------------

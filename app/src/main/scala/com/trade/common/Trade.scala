@@ -24,13 +24,6 @@ case class Trade(
                   status: String
                 )
 
-//case class Trade(
-//                id: Int,
-//                symbol: String,
-//                qty: Int,
-//                enriched: Boolean = false,
-//                price: Option[Double] = None
-//                )
 
 object Trade {
 

@@ -17,7 +17,6 @@ object DbTestApp extends App{
   val config = DbConfig.dbConfig
 
   private val driver = config.dbDriver
-
   private val url = config.dbUrl
   private val user = config.dbUser
   private val password = config.dbPassword
