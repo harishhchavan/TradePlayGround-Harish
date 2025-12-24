@@ -43,9 +43,15 @@ dependencies {
     // Database: Microsoft SQL Server JDBC
     implementation "com.microsoft.sqlserver:mssql-jdbc:12.6.1.jre11"
 
-
     //From Maven Central:
     implementation "com.crankuptheamps:amps-client:5.3.5.0"
+
+
+    // Akka - KEEP EXISTING (if you need it)
+    implementation 'com.typesafe.akka:akka-http_2.13:10.5.0'
+    implementation 'com.typesafe.akka:akka-actor-typed_2.13:2.8.0'
+    implementation 'com.typesafe.akka:akka-stream_2.13:2.8.0'
+
 
     // Tests (from your version catalog)
     testImplementation libs.junit
